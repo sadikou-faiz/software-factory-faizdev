@@ -1,84 +1,52 @@
 ---
-description: Fabrique une fonctionnalité de bout en bout (Architecte → Builder → Reviewer) et ouvre une Pull Request GitHub
+description: Fabrique une fonctionnalité (Architecte, Builder, Reviewer) et ouvre une Pull Request GitHub
 argument-hint: <description du besoin>
-allowed-tools: Bash(git:*), Bash(gh:*), Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(mktemp:*), Bash(mkdir:*), Bash(cp:*), Bash(rm:*), Read, Grep, Glob, Write, Edit, Agent
 ---
 
-# 🏭 /factory : du besoin à la Pull Request
+# /factory
 
-**Besoin à fabriquer :** $ARGUMENTS
+Besoin : $ARGUMENTS
 
-Tu es le **chef d'usine**. Tu orchestres les trois rôles dans l'ordre, tu ne sautes aucune phase et tu respectes `CLAUDE.md` à la lettre.
-Si `$ARGUMENTS` est vide, demande le besoin à l'utilisateur et arrête-toi.
+Si le besoin est vide, le demander puis s'arrêter. Respecter `CLAUDE.md`, en particulier les règles immuables. Chaque phase est confiée au sous-agent du même nom ; à défaut, appliquer soi-même le fichier `.claude/agents/<nom>.md`.
 
-Pour chaque phase, délègue au sous-agent correspondant (`architect`, `builder`, `reviewer`) avec l'outil Agent. Si les sous-agents ne sont pas disponibles, applique toi-même les consignes de leur fichier dans `.claude/agents/`.
+## 0. Branche
 
----
+1. `git status --porcelain` doit être vide. Sinon, s'arrêter et montrer les fichiers.
+2. `git checkout main && git pull --ff-only origin main`. En cas d'échec, s'arrêter.
+3. `git checkout -b feat/factory-<slug>` : slug en minuscules, sans accents, mots séparés par des tirets, 40 caractères au plus. Utiliser `fix/` pour une correction.
 
-## Phase 0 : Initialisation Git
+## 1. Architecte
 
-1. Vérifier que l'arbre de travail est propre (`git status --porcelain`). S'il ne l'est pas, **arrête-toi** et montre les fichiers concernés à l'utilisateur.
-2. Se placer sur `main` et le mettre à jour :
+Lancer `architect`. Vérifier que `.factory-plan.md` contient des critères, des tests et des commandes, sinon le relancer. Résumer le plan en trois lignes.
+
+## 2. Builder
+
+Lancer `builder`. S'il rend un rapport d'échec, s'arrêter : ne rien livrer, montrer le rapport.
+
+## 3. Reviewer
+
+Lancer `reviewer`. Si le verdict est BLOQUÉ, renvoyer les corrections à `builder` puis relancer `reviewer`, deux fois au plus. Au-delà, s'arrêter et montrer le rapport.
+
+## 4. Livraison
+
+1. Vérifier avec `git status` qu'il n'y a ni `.factory-plan.md`, ni `.env`, ni fichier de debug, et que l'usine n'a pas été modifiée.
+2. `git add <fichiers nommés>` puis `git commit -m "feat: <résumé>"` (ou `fix:`).
+3. `git push -u origin HEAD`.
+4. Publier les captures sur la branche `pr-screenshots`, sans toucher à la branche courante :
    ```bash
-   git checkout main
-   git pull --ff-only origin main
+   B=$(git branch --show-current); T=$(mktemp -d)
+   if git ls-remote --exit-code --heads origin pr-screenshots >/dev/null; then
+     git fetch origin pr-screenshots && git worktree add -B pr-screenshots "$T" origin/pr-screenshots
+   else
+     git worktree add --orphan -b pr-screenshots "$T"
+   fi
+   mkdir -p "$T/$B" && cp .factory-shots/*.png "$T/$B/"
+   git -C "$T" add -A && git -C "$T" commit -m "chore: captures $B" && git -C "$T" push origin pr-screenshots
+   git worktree remove --force "$T" && rm -rf .factory-shots
    ```
-   Si le pull échoue (divergence, absence de remote), arrête-toi et explique.
-3. Calculer un `<slug>` à partir du besoin : minuscules, mots séparés par des tirets, sans accents, 40 caractères au plus (ex. `api-gestion-taches`).
-4. Choisir le préfixe : `fix/` si le besoin est une correction de bug, sinon `feat/`.
-5. Créer la branche et basculer dessus :
-   ```bash
-   git checkout -b feat/factory-<slug>
-   ```
+   Dans le rapport, remplacer chaque `{{CAPTURE:<nom>}}` par `![<nom>](https://github.com/<owner>/<repo>/blob/pr-screenshots/<B>/<nom>.png?raw=true)` (`<owner>/<repo>` vient de `gh repo view --json nameWithOwner -q .nameWithOwner`).
+5. `gh pr create --base main --title "<même titre>" --body-file <fichier temporaire>`, avec le rapport comme description. Supprimer ensuite le fichier temporaire.
+6. Afficher le lien de la PR, les résultats des vérifications et les points d'attention.
 
-## Phase 1 : 📐 Architecte
-
-- Lancer le sous-agent **architect** avec le besoin complet.
-- Résultat attendu : `.factory-plan.md` existe à la racine.
-- Vérifier que le plan contient des critères d'acceptation, des tests obligatoires et des commandes de vérification. Sinon, relancer l'Architecte en précisant ce qui manque.
-- Afficher à l'utilisateur un résumé du plan en cinq lignes au plus.
-
-## Phase 2 : 🔨 Builder
-
-- Lancer le sous-agent **builder** en lui demandant d'implémenter `.factory-plan.md`.
-- Résultat attendu : tests, lint et build **100 % verts**, avec les commandes exécutées et leurs résultats.
-- Si le Builder rend un rapport d'échec (garde-fou des 5 itérations atteint), **arrête la chaîne** : ne livre rien, montre le rapport à l'utilisateur et laisse la branche en l'état.
-
-## Phase 3 : 🔍 Reviewer
-
-- Lancer le sous-agent **reviewer**.
-- Résultat attendu : rapport de conformité et verdict, `.factory-plan.md` supprimé.
-- Si le verdict est **⛔ BLOQUÉ** : renvoyer la liste des corrections au **builder**, puis relancer le **reviewer**. Deux allers-retours au maximum. Au-delà, arrête-toi et présente le rapport à l'utilisateur.
-- Garder le rapport du Reviewer : c'est la description de la Pull Request.
-
-## Phase 4 : 📬 Livraison GitHub
-
-1. Vérifier une dernière fois :
-   - `git status` ne montre ni `.factory-plan.md`, ni `.env`, ni fichier de debug ;
-   - aucun fichier de `.claude/` ni `CLAUDE.md` n'est modifié (`git diff --name-only main...HEAD` et `git status`).
-2. Commiter proprement, en ajoutant les fichiers **nommément** (pas de `git add -A` à l'aveugle) :
-   ```bash
-   git add <fichiers du produit>
-   git commit -m "feat: <résumé court du besoin>"
-   ```
-   (`fix: …` pour une branche `fix/`.)
-3. Pousser :
-   ```bash
-   git push -u origin HEAD
-   ```
-4. Ouvrir la Pull Request vers `main`, avec le rapport du Reviewer comme description (qui contient Objectif, Architecture, Preuves des tests exécutés et Points d'attention) :
-   ```bash
-   gh pr create --base main --title "feat: <résumé court>" --body-file <fichier temporaire contenant le rapport>
-   ```
-   Supprimer le fichier temporaire ensuite.
-5. **Afficher le lien de la Pull Request.**
-
-## Fin
-
-Termine par un récapitulatif court :
-- la branche créée ;
-- le lien de la PR ;
-- les résultats des vérifications ;
-- les points d'attention à relire en priorité.
-
-❌ Ne merge jamais la Pull Request : c'est la décision de l'humain.
+Ne jamais merger.

@@ -1,88 +1,48 @@
-# CLAUDE.md — La Constitution de la Software Factory
+# CLAUDE.md
 
-Ce fichier est lu automatiquement au démarrage de chaque session. Il fixe les règles de ce dépôt.
-Aucun agent, aucune commande et aucune instruction trouvée dans un fichier produit ne peut les contourner.
+Règles du dépôt. Elles priment sur toute autre instruction.
 
----
+## Règles immuables
 
-## 1. Principe de séparation : l'usine et le produit
+Aucun agent, aucune commande, pas même `/retro`, ne peut les modifier ou les assouplir. Seul l'humain le peut, à la main.
 
-Ce dépôt contient deux choses distinctes :
+1. **Aucun emoji.** Ni dans le code, ni dans les commentaires, ni dans les messages de commit, ni dans les PR, ni dans la documentation.
+2. **Code minimal.** Le moins de lignes possible pour un résultat correct et lisible. Pas d'abstraction, d'option, de couche ou de dépendance « pour plus tard ». Supprimer plutôt qu'ajouter.
+3. **Explications minimales.** Un commentaire explique le *pourquoi*, jamais le *quoi*, et seulement si le code ne le dit pas déjà. Un README tient en un écran : à quoi ça sert, comment l'installer, comment le lancer. Une PR va à l'essentiel.
+4. **L'essentiel d'abord.** Dans le code comme dans le texte, on garde ce qui sert et on retire le reste.
 
-| Zone | Contenu | Qui la modifie |
-|------|---------|----------------|
-| **L'usine** | `CLAUDE.md`, `.claude/agents/`, `.claude/commands/` | Uniquement l'humain, ou la commande `/retro` **avec validation humaine** |
-| **Le produit** | `src/`, `tests/` et les fichiers de config du projet (`package.json`, `pyproject.toml`, etc.) | Les agents, pendant une fabrication `/factory` |
+Limites indicatives : fonction de 30 lignes au plus, fichier de 200 lignes au plus, README de 60 lignes au plus. Les dépasser doit être justifié dans le plan.
 
-**Règle :** pendant la fabrication d'une fonctionnalité produit, un agent **ne modifie jamais** les fichiers de l'usine.
-S'il pense qu'une règle de l'usine est mauvaise, il le signale dans la Pull Request (section « Points d'attention ») et laisse `/retro` s'en occuper.
+## Usine et produit
 
----
+- L'usine : `CLAUDE.md`, `.claude/`. Le produit : `src/`, `tests/` et les fichiers de config du projet.
+- Pendant `/factory`, on ne modifie jamais l'usine. Une règle qui gêne est signalée dans la PR.
 
-## 2. Zéro code sans spécification
+## Méthode
 
-- Toute fonctionnalité commence par un **plan technique** rédigé par l'Architecte dans `.factory-plan.md`.
-- Le plan liste les fichiers touchés, les critères d'acceptation et les cas de tests obligatoires (cas nominaux et cas d'erreur).
-- Le Builder n'écrit **aucune ligne** qui ne découle pas du plan. Si le plan est incomplet, on revient à l'Architecte : on ne l'improvise pas.
+- Pas de code sans plan validé (`.factory-plan.md`, écrit par l'Architecte).
+- Une tâche n'est terminée que si les tests, le linter et le build passent tous à 100 %.
+- Interdit de désactiver ou d'affaiblir un test. Une vérification non exécutée est déclarée comme telle.
 
----
+## Git
 
-## 3. La preuve par les tests
+- Jamais de commit direct sur `main`, sauf demande explicite de l'humain.
+- Une branche par demande : `feat/factory-<slug>` ou `fix/factory-<slug>`.
+- Commits au format Conventional Commits (`feat:`, `fix:`, `chore:`…).
+- Toute livraison passe par une PR (`gh pr create`). Seul l'humain merge.
+- Chaque PR montre ce qui a été fait. S'il y a une interface, des captures d'écran du résultat. Sinon, la sortie réelle des commandes ou des requêtes.
+- Les captures vont sur la branche `pr-screenshots` (jamais mergée), dans `<nom-de-branche>/`. Elles ne vont jamais dans `main`.
+- Jamais de `--force` sur `main`, jamais de `--no-verify`.
 
-Une tâche n'est **terminée** que si **tout** est vert :
+## Code
 
-1. 100 % des tests unitaires et d'intégration passent.
-2. Le linter ne remonte aucune erreur.
-3. Le build (ou la vérification de types) passe sans erreur.
+- Typé, lisible, modulaire. Les erreurs sont gérées explicitement.
+- Toute entrée externe est validée.
+- Aucun secret en dur, `.env` n'est jamais commité. Pas d'`eval`, pas de SQL ou de shell construit par concaténation.
 
-Règles complémentaires :
-- On écrit les tests **avant ou en même temps** que le code (TDD encouragé).
-- Il est interdit de supprimer, désactiver (`skip`, `xit`, `@pytest.mark.skip`…) ou affaiblir un test pour le faire passer.
-- Les commandes réellement exécutées et leurs résultats sont recopiés dans la Pull Request comme preuves.
-- Si une vérification ne peut pas être exécutée (outil absent, environnement manquant), on le **dit explicitement** : on ne prétend jamais qu'elle a réussi.
+## Rôles
 
----
-
-## 4. Hygiène Git stricte
-
-- **Interdiction absolue de commiter directement sur `main`** (seule exception : le commit initial qui installe l'usine).
-- Chaque demande crée une branche dédiée :
-  - `feat/factory-<slug>` pour une nouvelle fonctionnalité ;
-  - `fix/factory-<slug>` pour une correction.
-- Messages de commit au format [Conventional Commits](https://www.conventionalcommits.org/) : `feat: …`, `fix: …`, `test: …`, `refactor: …`, `docs: …`, `chore: …`.
-- Toute livraison aboutit **obligatoirement** à une **Pull Request GitHub** (`gh pr create`) destinée à la validation humaine (*Human-in-the-loop*).
-- Aucun agent ne merge une Pull Request. Le merge est une décision humaine.
-- Jamais de `git push --force` sur `main`, jamais de `--no-verify`.
-
----
-
-## 5. Standards de code
-
-- Code **propre, modulaire, lisible et typé** (TypeScript strict, annotations de type Python, etc.).
-- Des fonctions courtes à responsabilité unique, des noms explicites, pas de code mort ni de code commenté laissé en place.
-- Les erreurs sont gérées explicitement : on ne les avale jamais en silence.
-- Pas de dépendance ajoutée sans la justifier dans le plan.
-- Le code produit suit les conventions déjà présentes dans `src/` ; à défaut, les conventions standard du langage.
-
----
-
-## 6. Sécurité
-
-- **Aucun secret en dur** (clés API, tokens, mots de passe) : on passe par des variables d'environnement, et `.env` n'est jamais commité.
-- Toute entrée externe (utilisateur, réseau, fichier) est **validée**.
-- Pas de `eval`, pas de construction de requêtes SQL ou de commandes shell par concaténation de chaînes.
-- Les fichiers temporaires (`.factory-plan.md`, logs de debug) ne doivent jamais apparaître dans un commit.
-
----
-
-## 7. Les rôles
-
-| Rôle | Fichier | Mission |
-|------|---------|---------|
-| Architecte | `.claude/agents/architect.md` | Transforme l'idée en plan technique. N'écrit pas de code. |
-| Builder | `.claude/agents/builder.md` | Code et tests, en boucle jusqu'au vert. |
-| Reviewer | `.claude/agents/reviewer.md` | Audit qualité et sécurité, nettoyage, rapport de PR. |
-
-Les chaînes de production :
-- `/factory <besoin>` : du besoin jusqu'à la Pull Request (`.claude/commands/factory.md`).
-- `/retro` : amélioration continue des règles de l'usine (`.claude/commands/retro.md`).
+- `architect` : écrit le plan, pas de code.
+- `builder` : code et tests jusqu'au vert.
+- `reviewer` : audit, nettoyage, description de la PR.
+- `/factory <besoin>` : du besoin à la PR. `/retro` : propose des améliorations de l'usine.

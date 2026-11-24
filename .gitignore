@@ -1,5 +1,6 @@
 # --- Software Factory : fichiers temporaires ---
 .factory-plan.md
+.factory-shots/
 *.debug.log
 
 # --- Secrets ---
