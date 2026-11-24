@@ -1,0 +1,48 @@
+# --- Software Factory : fichiers temporaires ---
+.factory-plan.md
+*.debug.log
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Node / JavaScript ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.next/
+.nuxt/
+.turbo/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Builds ---
+dist/
+build/
+out/
+target/
+coverage/
+.coverage
+htmlcov/
+
+# --- OS / éditeurs ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Claude : réglages locaux ---
+.claude/settings.local.json
