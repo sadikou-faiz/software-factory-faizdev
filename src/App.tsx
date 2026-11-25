@@ -3,6 +3,7 @@ import { CircleAlert, Loader2, MapPin, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CurrentWeather } from '@/components/CurrentWeather'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { DailyForecast, HourlyForecast } from '@/components/Forecast'
 import { cn } from '@/lib/utils'
 import { geocode, getForecast, nextHours, type Forecast, type Place } from '@/lib/weather'
@@ -51,46 +52,51 @@ export default function App() {
 
   return (
     <div className={cn('min-h-screen text-white', background)}>
-      <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
-        <form role="search" onSubmit={onSubmit} className="flex gap-2">
-          <Input
-            aria-label="Ville"
-            placeholder="Rechercher une ville"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="border-white/30 bg-white/20 text-white placeholder:text-white/70"
-          />
-          <Button type="submit" variant="secondary" disabled={state.status === 'loading'}>
-            <Search />
-            Rechercher
-          </Button>
-        </form>
-        {state.status === 'loading' && (
-          <p role="status" className="flex items-center justify-center gap-2 py-12 text-lg">
-            <Loader2 className="animate-spin" />
-            Chargement…
-          </p>
-        )}
-        {state.status === 'notfound' && (
-          <p role="alert" className="flex items-center justify-center gap-2 py-12 text-lg">
-            <MapPin />
-            Ville introuvable : {state.query}
-          </p>
-        )}
-        {state.status === 'error' && (
-          <p role="alert" className="flex items-center justify-center gap-2 py-12 text-lg">
-            <CircleAlert />
-            {state.message}
-          </p>
-        )}
-        {state.status === 'ok' && (
-          <>
-            <CurrentWeather place={state.place} current={state.forecast.current} />
-            <HourlyForecast hours={nextHours(state.forecast)} />
-            <DailyForecast daily={state.forecast.daily} />
-          </>
-        )}
-      </main>
+      <div className="min-h-screen dark:bg-black/40">
+        <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
+          <div className="flex gap-2">
+            <form role="search" onSubmit={onSubmit} className="flex flex-1 gap-2">
+              <Input
+                aria-label="Ville"
+                placeholder="Rechercher une ville"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="border-white/40 bg-white/90 text-slate-900 placeholder:text-slate-500 dark:border-white/30 dark:bg-white/15 dark:text-white dark:placeholder:text-white/70"
+              />
+              <Button type="submit" variant="secondary" disabled={state.status === 'loading'}>
+                <Search />
+                Rechercher
+              </Button>
+            </form>
+            <ThemeToggle />
+          </div>
+          {state.status === 'loading' && (
+            <p role="status" className="flex items-center justify-center gap-2 py-12 text-lg">
+              <Loader2 className="animate-spin" />
+              Chargement…
+            </p>
+          )}
+          {state.status === 'notfound' && (
+            <p role="alert" className="flex items-center justify-center gap-2 py-12 text-lg">
+              <MapPin />
+              Ville introuvable : {state.query}
+            </p>
+          )}
+          {state.status === 'error' && (
+            <p role="alert" className="flex items-center justify-center gap-2 py-12 text-lg">
+              <CircleAlert />
+              {state.message}
+            </p>
+          )}
+          {state.status === 'ok' && (
+            <>
+              <CurrentWeather place={state.place} current={state.forecast.current} />
+              <HourlyForecast hours={nextHours(state.forecast)} />
+              <DailyForecast daily={state.forecast.daily} />
+            </>
+          )}
+        </main>
+      </div>
     </div>
   )
 }
