@@ -100,4 +100,11 @@ describe('App', () => {
     expect(within(daily).getAllByRole('listitem')).toHaveLength(7)
     expect(within(daily).getByText('mar.')).toBeInTheDocument()
   })
+
+  it('T26: le bouton thème est présent avec Paris affiché', async () => {
+    stubApi()
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Paris' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Thème sombre' })).toBeInTheDocument()
+  })
 })
